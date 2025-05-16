@@ -10,7 +10,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing or invalid messages array' });
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Configuración para usar el proyecto de Claude específico
+    const CLAUDE_PROJECT_ID = process.env.CLAUDE_PROJECT_ID || 'isitecbot'; // Usa el ID de tu proyecto
+    
+    const response = await fetch(`https://api.anthropic.com/v1/projects/${CLAUDE_PROJECT_ID}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -18,7 +21,6 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-opus-20240229',
         max_tokens: 1000,
         messages: messages.map(msg => ({
           role: msg.role,
@@ -29,6 +31,7 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('API error details:', error);
       throw new Error(JSON.stringify(error));
     }
 
@@ -36,6 +39,9 @@ export default async function handler(req, res) {
     return res.status(200).json(data);
   } catch (error) {
     console.error('Error calling Claude API:', error);
-    return res.status(500).json({ error: 'Failed to communicate with Claude API' });
+    return res.status(500).json({ 
+      error: 'Failed to communicate with Claude API',
+      details: error.message 
+    });
   }
 }
