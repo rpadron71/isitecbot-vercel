@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     }
 
     const requestBody = {
-      model: 'claude-3-haiku-20240307',  // Usaremos el modelo haiku que es más rápido
+      model: 'claude-3-haiku-20240307',
       max_tokens: 1000,
       system: "Eres un asistente virtual de ISI Rentas, una empresa que se dedica al alquiler de equipos y maquinaria industrial. Responde de manera amable, clara y profesional.",
       messages: messages.slice(-10).map(msg => ({
