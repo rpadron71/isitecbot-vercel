@@ -10,10 +10,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing or invalid messages array' });
     }
 
-    // Configuración para usar el proyecto de Claude específico
-    const CLAUDE_PROJECT_ID = process.env.CLAUDE_PROJECT_ID || 'isitecbot'; // Usa el ID de tu proyecto
-    
-    const response = await fetch(`https://api.anthropic.com/v1/projects/${CLAUDE_PROJECT_ID}/messages`, {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -21,7 +18,9 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
+        model: 'claude-3-sonnet-20240229',
         max_tokens: 1000,
+        system: "Eres un asistente virtual de ISI Rentas, una empresa que se dedica al alquiler de equipos y maquinaria industrial. Responde de manera amable, clara y profesional. Tu objetivo es ayudar a los clientes con información sobre productos, servicios, precios, disponibilidad, y procesos de renta. Utiliza un tono cordial y orientado al servicio. Cuando no tengas información específica, ofrece poner al cliente en contacto con un representante humano.",
         messages: messages.map(msg => ({
           role: msg.role,
           content: msg.content
