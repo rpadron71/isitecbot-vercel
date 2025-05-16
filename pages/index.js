@@ -37,10 +37,11 @@ export default function Home() {
 
       const data = await response.json();
       
-      if (data.content && data.content.length > 0) {
+      // Manejar la respuesta de la API
+      if (data && data.content) {
         setMessages([...newMessages, { 
           role: 'assistant', 
-          content: data.content[0].text 
+          content: data.content 
         }]);
       } else {
         // Mensaje de respaldo si la respuesta no tiene el formato esperado
