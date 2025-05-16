@@ -10,20 +10,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing or invalid messages array' });
     }
 
-    console.log('API Key disponible:', !!process.env.ANTHROPIC_API_KEY);
-    console.log('Mensajes recibidos:', JSON.stringify(messages));
-    
     const requestBody = {
-      model: 'claude-3-opus-20240229',  // Cambiado a opus que es más compatible
+      model: 'claude-3-haiku-20240307',  // Usaremos el modelo haiku que es más rápido
       max_tokens: 1000,
       system: "Eres un asistente virtual de ISI Rentas, una empresa que se dedica al alquiler de equipos y maquinaria industrial. Responde de manera amable, clara y profesional.",
-      messages: messages.slice(-10).map(msg => ({  // Solo enviamos los últimos 10 mensajes para evitar exceder límites
+      messages: messages.slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content
       }))
     };
-    
-    console.log('Enviando a Anthropic:', JSON.stringify(requestBody));
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -35,33 +30,20 @@ export default async function handler(req, res) {
       body: JSON.stringify(requestBody)
     });
 
-    const responseText = await response.text();
-    console.log('Respuesta de la API:', response.status, responseText);
-    
     if (!response.ok) {
+      const errorData = await response.json();
       return res.status(response.status).json({ 
         error: `Error de la API: ${response.status}`,
-        details: responseText
+        details: errorData
       });
     }
 
-    try {
-      const data = JSON.parse(responseText);
-      console.log('Datos procesados:', JSON.stringify(data));
-      return res.status(200).json(data);
-    } catch (jsonError) {
-      console.error('Error al parsear JSON:', jsonError);
-      return res.status(500).json({
-        error: 'Error al procesar la respuesta de la API',
-        details: responseText.substring(0, 200) + '...'
-      });
-    }
+    const data = await response.json();
+    return res.status(200).json(data);
   } catch (error) {
-    console.error('Error detallado:', error);
     return res.status(500).json({ 
-      error: 'Failed to communicate with Claude API',
-      details: error.message,
-      stack: error.stack
+      error: 'Error al comunicarse con la API de Claude',
+      message: error.message
     });
   }
 }
