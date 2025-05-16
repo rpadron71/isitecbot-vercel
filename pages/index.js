@@ -7,6 +7,7 @@ export default function Home() {
     { role: 'assistant', content: 'Hola, soy ISITec Chatbot. ¿En qué puedo ayudarte hoy?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,9 +19,12 @@ export default function Home() {
     setMessages(newMessages);
     setInput('');
     setIsLoading(true);
+    setError(null);
 
     try {
       // Llamada a la API de Claude
+      console.log('Enviando al backend:', JSON.stringify({ messages: newMessages }));
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -31,24 +35,42 @@ export default function Home() {
         }),
       });
 
+      console.log('Respuesta recibida, status:', response.status);
+      
+      const responseText = await response.text();
+      console.log('Texto de respuesta:', responseText);
+      
       if (!response.ok) {
-        throw new Error('Error en la respuesta de la API');
+        console.error('Error en la respuesta:', response.status, responseText);
+        throw new Error(`Error en la respuesta de la API: ${response.status} - ${responseText}`);
       }
 
-      const data = await response.json();
-      
-      // Manejar la respuesta de la API
-      if (data && data.content) {
+      try {
+        const data = JSON.parse(responseText);
+        console.log('Datos procesados:', data);
+        
+        // Manejar la respuesta de la API
+        if (data && data.content) {
+          console.log('Contenido de la respuesta:', data.content);
+          setMessages([...newMessages, { 
+            role: 'assistant', 
+            content: data.content 
+          }]);
+        } else {
+          console.error('Formato de respuesta inesperado:', data);
+          setMessages([...newMessages, { 
+            role: 'assistant', 
+            content: 'Lo siento, tuve un problema al procesar tu solicitud. ¿Puedes intentarlo de nuevo?' 
+          }]);
+          setError('Formato de respuesta inesperado');
+        }
+      } catch (jsonError) {
+        console.error('Error al parsear respuesta JSON:', jsonError);
         setMessages([...newMessages, { 
           role: 'assistant', 
-          content: data.content 
+          content: 'Lo siento, recibí una respuesta que no pude procesar. ¿Puedes intentarlo de nuevo?' 
         }]);
-      } else {
-        // Mensaje de respaldo si la respuesta no tiene el formato esperado
-        setMessages([...newMessages, { 
-          role: 'assistant', 
-          content: 'Lo siento, tuve un problema al procesar tu solicitud. ¿Puedes intentarlo de nuevo?' 
-        }]);
+        setError('Error al procesar la respuesta: ' + jsonError.message);
       }
     } catch (error) {
       console.error('Error al llamar a la API:', error);
@@ -57,6 +79,7 @@ export default function Home() {
         role: 'assistant', 
         content: 'Lo siento, ocurrió un error al comunicarme con el servidor. Por favor, intenta de nuevo más tarde.' 
       }]);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -99,47 +122,3 @@ export default function Home() {
               boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
             }}>
               {msg.content}
-            </div>
-          ))}
-          {isLoading && (
-            <div style={{ textAlign: 'center', padding: '10px' }}>
-              <p>Pensando...</p>
-            </div>
-          )}
-        </div>
-        
-        <form onSubmit={handleSubmit} style={{ display: 'flex' }}>
-          <input 
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Escribe tu mensaje aquí..." 
-            style={{ 
-              flex: 1, 
-              padding: '12px', 
-              borderRadius: '4px', 
-              border: '1px solid #ccc', 
-              marginRight: '10px',
-              fontSize: '16px'
-            }}
-          />
-          <button 
-            type="submit" 
-            disabled={isLoading}
-            style={{ 
-              background: isLoading ? '#cccccc' : '#0078D7', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '4px', 
-              padding: '12px 20px',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
-          >
-            {isLoading ? 'Enviando...' : 'Enviar'}
-          </button>
-        </form>
-      </main>
-    </div>
-  );
-}
