@@ -14,10 +14,10 @@ export default async function handler(req, res) {
     console.log('Mensajes recibidos:', JSON.stringify(messages));
     
     const requestBody = {
-      model: 'claude-3-sonnet-20240229',
+      model: 'claude-3-opus-20240229',  // Cambiado a opus que es más compatible
       max_tokens: 1000,
       system: "Eres un asistente virtual de ISI Rentas, una empresa que se dedica al alquiler de equipos y maquinaria industrial. Responde de manera amable, clara y profesional.",
-      messages: messages.map(msg => ({
+      messages: messages.slice(-10).map(msg => ({  // Solo enviamos los últimos 10 mensajes para evitar exceder límites
         role: msg.role,
         content: msg.content
       }))
@@ -45,8 +45,17 @@ export default async function handler(req, res) {
       });
     }
 
-    const data = JSON.parse(responseText);
-    return res.status(200).json(data);
+    try {
+      const data = JSON.parse(responseText);
+      console.log('Datos procesados:', JSON.stringify(data));
+      return res.status(200).json(data);
+    } catch (jsonError) {
+      console.error('Error al parsear JSON:', jsonError);
+      return res.status(500).json({
+        error: 'Error al procesar la respuesta de la API',
+        details: responseText.substring(0, 200) + '...'
+      });
+    }
   } catch (error) {
     console.error('Error detallado:', error);
     return res.status(500).json({ 
