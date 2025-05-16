@@ -10,6 +10,21 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing or invalid messages array' });
     }
 
+    console.log('API Key disponible:', !!process.env.ANTHROPIC_API_KEY);
+    console.log('Mensajes recibidos:', JSON.stringify(messages));
+    
+    const requestBody = {
+      model: 'claude-3-sonnet-20240229',
+      max_tokens: 1000,
+      system: "Eres un asistente virtual de ISI Rentas, una empresa que se dedica al alquiler de equipos y maquinaria industrial. Responde de manera amable, clara y profesional.",
+      messages: messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+    };
+    
+    console.log('Enviando a Anthropic:', JSON.stringify(requestBody));
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -17,30 +32,27 @@ export default async function handler(req, res) {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: 1000,
-        system: "Eres un asistente virtual de ISI Rentas, una empresa que se dedica al alquiler de equipos y maquinaria industrial. Responde de manera amable, clara y profesional. Tu objetivo es ayudar a los clientes con información sobre productos, servicios, precios, disponibilidad, y procesos de renta. Utiliza un tono cordial y orientado al servicio. Cuando no tengas información específica, ofrece poner al cliente en contacto con un representante humano.",
-        messages: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }))
-      })
+      body: JSON.stringify(requestBody)
     });
 
+    const responseText = await response.text();
+    console.log('Respuesta de la API:', response.status, responseText);
+    
     if (!response.ok) {
-      const error = await response.json();
-      console.error('API error details:', error);
-      throw new Error(JSON.stringify(error));
+      return res.status(response.status).json({ 
+        error: `Error de la API: ${response.status}`,
+        details: responseText
+      });
     }
 
-    const data = await response.json();
+    const data = JSON.parse(responseText);
     return res.status(200).json(data);
   } catch (error) {
-    console.error('Error calling Claude API:', error);
+    console.error('Error detallado:', error);
     return res.status(500).json({ 
       error: 'Failed to communicate with Claude API',
-      details: error.message 
+      details: error.message,
+      stack: error.stack
     });
   }
 }
