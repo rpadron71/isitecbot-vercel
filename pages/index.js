@@ -14,20 +14,51 @@ export default function Home() {
 
     // Añadir mensaje del usuario
     const userMessage = { role: 'user', content: input };
-    setMessages([...messages, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
-    // Aquí iría la llamada a la API de Claude
-    // Por ahora, simulamos una respuesta
-    setTimeout(() => {
-      const botMessage = { 
+    try {
+      // Llamada a la API de Claude
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: newMessages
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error en la respuesta de la API');
+      }
+
+      const data = await response.json();
+      
+      if (data.content && data.content.length > 0) {
+        setMessages([...newMessages, { 
+          role: 'assistant', 
+          content: data.content[0].text 
+        }]);
+      } else {
+        // Mensaje de respaldo si la respuesta no tiene el formato esperado
+        setMessages([...newMessages, { 
+          role: 'assistant', 
+          content: 'Lo siento, tuve un problema al procesar tu solicitud. ¿Puedes intentarlo de nuevo?' 
+        }]);
+      }
+    } catch (error) {
+      console.error('Error al llamar a la API:', error);
+      // Mensaje de error para el usuario
+      setMessages([...newMessages, { 
         role: 'assistant', 
-        content: 'Esta es una respuesta de prueba. En una implementación real, aquí se conectaría con la API de Claude.' 
-      };
-      setMessages(prev => [...prev, botMessage]);
+        content: 'Lo siento, ocurrió un error al comunicarme con el servidor. Por favor, intenta de nuevo más tarde.' 
+      }]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -92,18 +123,19 @@ export default function Home() {
           />
           <button 
             type="submit" 
+            disabled={isLoading}
             style={{ 
-              background: '#0078D7', 
+              background: isLoading ? '#cccccc' : '#0078D7', 
               color: 'white', 
               border: 'none', 
               borderRadius: '4px', 
               padding: '12px 20px',
-              cursor: 'pointer',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
               fontSize: '16px',
               fontWeight: 'bold'
             }}
           >
-            Enviar
+            {isLoading ? 'Enviando...' : 'Enviar'}
           </button>
         </form>
       </main>
